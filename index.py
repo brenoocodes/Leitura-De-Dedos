@@ -19,31 +19,45 @@ if webcam.isOpened():
         if validacao:
             # Converter o frame de BGR (padrão OpenCV) para RGB (padrão MediaPipe)
             frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
+
             # Processar o reconhecimento de mãos no frame RGB
             lista_maos = maos.process(frameRGB)
             h, w, _ = frame.shape
             pontos = []
+
+            # Desenhar linhas e legendar os pixels na tela
+            for y in range(0, h, 50):
+                cv2.line(frame, (0, y), (w, y), (0, 255, 0), 1)  # Desenha linhas horizontais
+                for x in range(0, w, 50):
+                    cv2.line(frame, (x, 0), (x, h), (0, 255, 0), 1)  # Desenha linhas verticais
+                    cv2.putText(frame, f'({x}, {y})', (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+
             # Se mãos foram detectadas no frame
             if lista_maos.multi_hand_landmarks:
                 for mao in lista_maos.multi_hand_landmarks:
                     # Desenhar os pontos e conexões das mãos no frame
                     desenho_mp.draw_landmarks(frame, mao, reconhecimento_maos.HAND_CONNECTIONS)
                     for id, cord in enumerate(mao.landmark):
-                        cx, cy = int(cord.x*w), int(cord.y*h)
-                        cv2.putText(frame, str(id), (cx,cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1)
-                        pontos.append((cx, cy))
+                        cx, cy = int(cord.x * w), int(cord.y * h)
+                        cv2.putText(frame, f'{id}: ({cx}, {cy})', (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        pontos.append((cx, cy, id))
+
+                # Exemplo de ação com base na posição da mão
                 dedos = [8, 12, 16, 20]
                 contador = 0
+                # print(pontos)
+                # print('='*30)
                 if mao:
                     if pontos[4][0] < pontos[3][0]:
                         contador += 1  
-                    for x in dedos:
-                        if pontos[x][1] < pontos[x-1][1]:
-                            contador +=1
-                    cv2.putText(frame, str(contador), (100,100), cv2.FONT_HERSHEY_SIMPLEX, 3, (255,0,0), 3)
+                    for posicao_dedos in dedos:
+                        if pontos[posicao_dedos][1] < pontos[posicao_dedos-1][1]:
+                            contador += 1
+                    cv2.putText(frame, str(contador), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 3)
 
-            
+                    #logica de esquerda,  direita, cima e embaixo
+
+
             # Mostrar o frame da webcam
             cv2.imshow("Video da Webcam", frame)
             
@@ -57,3 +71,4 @@ if webcam.isOpened():
 # Liberar os recursos da webcam e fechar todas as janelas
 webcam.release()
 cv2.destroyAllWindows()
+
