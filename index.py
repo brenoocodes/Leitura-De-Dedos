@@ -15,7 +15,7 @@ movimento = "Neutro"
 frame_anterior = None
 
 # Tempo de espera entre os quadros (em segundos)
-tempo_espera = 0.1
+tempo_espera = 0.2
 
 # Verificar se a webcam foi aberta corretamente
 if webcam.isOpened():
@@ -25,6 +25,8 @@ if webcam.isOpened():
         
         # Se o frame foi capturado corretamente
         if validacao:
+            # Inverter o frame ao longo do eixo x
+            frame = cv2.flip(frame, 1)
             # Converter o frame de BGR (padrão OpenCV) para RGB (padrão MediaPipe)
             frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -34,11 +36,11 @@ if webcam.isOpened():
             pontos = []
 
             # Desenhar linhas e legendar os pixels na tela
-            for y in range(0, h, 50):
-                cv2.line(frame, (0, y), (w, y), (0, 255, 0), 1)  # Desenha linhas horizontais
-                for x in range(0, w, 50):
-                    cv2.line(frame, (x, 0), (x, h), (0, 255, 0), 1)  # Desenha linhas verticais
-                    cv2.putText(frame, f'({x}, {y})', (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+            # for y in range(0, h, 50):
+            #     cv2.line(frame, (0, y), (w, y), (0, 255, 0), 1)  # Desenha linhas horizontais
+            #     for x in range(0, w, 50):
+            #         cv2.line(frame, (x, 0), (x, h), (0, 255, 0), 1)  # Desenha linhas verticais
+            #         cv2.putText(frame, f'({x}, {y})', (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
 
             # Se mãos foram detectadas no frame
             if lista_maos.multi_hand_landmarks:
@@ -47,15 +49,19 @@ if webcam.isOpened():
                     desenho_mp.draw_landmarks(frame, mao, reconhecimento_maos.HAND_CONNECTIONS)
                     for id, cord in enumerate(mao.landmark):
                         cx, cy = int(cord.x * w), int(cord.y * h)
-                        cv2.putText(frame, f'{id}: ({cx}, {cy})', (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.putText(frame, f'{id}', (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
                         pontos.append((cx, cy, id))
 
                 # Exemplo de ação com base na posição da mão
                 dedos = [8, 12, 16, 20]
                 contador = 0
                 if mao:
-                    if pontos[4][0] < pontos[3][0]:
-                        contador += 1  
+                    if pontos[0][0] < pontos[4][0]:
+                        if pontos[4][0] > pontos[3][0]:
+                            contador += 1  
+                    if pontos[0][0] > pontos[4][0]:
+                        if pontos[4][0] < pontos[3][0]:
+                            contador += 1  
                     for posicao_dedos in dedos:
                         if pontos[posicao_dedos][1] < pontos[posicao_dedos-1][1]:
                             contador += 1
@@ -68,18 +74,19 @@ if webcam.isOpened():
                         dif_y = sum([p[1] - frame_anterior[i][1] for i, p in enumerate(pontos)]) / len(pontos)
                         movimento = "Neutro"
                         
-                        if abs(dif_x) >= min_pontos_movimento:
-                            if dif_x > 0:
-                                movimento = "Direita"
-                            else:
-                                movimento = "Esquerda"
-                        elif abs(dif_y) >= min_pontos_movimento:
+                        if abs(dif_y) >= min_pontos_movimento:
                             if dif_y > 0:
                                 movimento = "Baixo"
                             else:
                                 movimento = "Cima"
+                        elif abs(dif_x) >= min_pontos_movimento:
+                            if dif_x > 0:
+                                movimento = "Direita"
+                            else:
+                                movimento = "Esquerda"
 
                     frame_anterior = [(p[0], p[1]) for p in pontos]  # Atualiza as coordenadas do frame anterior
+                    time.sleep(tempo_espera)
 
                 # Mostra o movimento na tela
                 cv2.putText(frame, movimento, (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
@@ -89,7 +96,7 @@ if webcam.isOpened():
             
             # Aguardar um pouco antes de capturar o próximo frame
             tecla = cv2.waitKey(1)
-            time.sleep(tempo_espera)
+            
             
             # Verificar se a tecla 'Esc' foi pressionada ou se a janela foi fechada pelo usuário
             if tecla == 27 or cv2.getWindowProperty('Video da Webcam', cv2.WND_PROP_VISIBLE) < 1:
